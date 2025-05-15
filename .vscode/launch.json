@@ -1,0 +1,45 @@
+{
+   // Use IntelliSense to learn about possible attributes.
+   // Hover to view descriptions of existing attributes.
+   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "name": "aesthetics_labs_admin",
+         "request": "launch",
+         "type": "dart"
+      },
+      {
+         "name": "aesthetics_labs_admin (profile mode)",
+         "request": "launch",
+         "type": "dart",
+         "flutterMode": "profile"
+      },
+      {
+         "name": "aesthetics_labs_admin (release mode)",
+         "request": "launch",
+         "type": "dart",
+         "flutterMode": "release"
+      },
+      {
+         "name": "booking_calendar",
+         "cwd": "booking_calendar",
+         "request": "launch",
+         "type": "dart"
+      },
+      {
+         "name": "booking_calendar (profile mode)",
+         "cwd": "booking_calendar",
+         "request": "launch",
+         "type": "dart",
+         "flutterMode": "profile"
+      },
+      {
+         "name": "booking_calendar (release mode)",
+         "cwd": "booking_calendar",
+         "request": "launch",
+         "type": "dart",
+         "flutterMode": "release"
+      }
+   ]
+}

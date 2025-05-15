@@ -1,0 +1,28 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "aesthetics-lab-1",
+          "appId": "1:562380229586:android:28300ffc60c45dcd5c560b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "aesthetics-lab-1",
+          "configurations": {
+            "android": "1:562380229586:android:28300ffc60c45dcd5c560b",
+            "ios": "1:562380229586:ios:080f69fee7c65aae5c560b",
+            "macos": "1:562380229586:ios:080f69fee7c65aae5c560b",
+            "web": "1:562380229586:web:665f526abbd449645c560b",
+            "windows": "1:562380229586:web:7ec46844ee543aa25c560b"
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

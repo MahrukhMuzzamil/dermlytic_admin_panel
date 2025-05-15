@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "562380229586",
+    "project_id": "aesthetics-lab-1",
+    "storage_bucket": "aesthetics-lab-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562380229586:android:28300ffc60c45dcd5c560b",
+        "android_client_info": {
+          "package_name": "com.example.aesthetics_labs_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADEbjg5fhetyE4s6lgfCdCIrmzvOVtenQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562380229586:android:8edcaede6756bd835c560b",
+        "android_client_info": {
+          "package_name": "com.tibbi.aesthetics_labs"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADEbjg5fhetyE4s6lgfCdCIrmzvOVtenQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
