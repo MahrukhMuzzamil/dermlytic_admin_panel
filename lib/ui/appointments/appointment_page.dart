@@ -3,6 +3,7 @@ import 'package:aesthetics_labs_admin/ui/general_widgets/drawer.dart';
 // import 'package:aesthetics_labs_admin/ui/general_widgets/doctor_utilization_panel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:aesthetics_labs_admin/styles/styles.dart';
 // Removed GetX imports; using direct Firestore stream for branches
 
 class AppointmentPage extends StatefulWidget {
@@ -430,15 +431,15 @@ class _AppointmentPageState extends State<AppointmentPage> {
   Color _statusColor(String? status) {
     switch (status) {
       case 'Serviced':
-        return Colors.green.shade200;
+        return Color.fromRGBO(successColor.red, successColor.green, successColor.blue, 0.2);
       case 'In-progress':
-        return Colors.grey.shade300;
+        return Color.fromRGBO(warningColor.red, warningColor.green, warningColor.blue, 0.2);
       case 'Open & confirmed':
-        return Colors.indigo.shade200;
+        return Color.fromRGBO(infoColor.red, infoColor.green, infoColor.blue, 0.2);
       case 'Cancelled':
-        return Colors.purple.shade200;
+        return Color.fromRGBO(errorColor.red, errorColor.green, errorColor.blue, 0.2);
       default:
-        return Colors.grey.shade200;
+        return neutralMedium;
     }
   }
 
@@ -462,6 +463,30 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   String _formatTime(DateTime dt) => timeFormat.format(dt);
+
+  Widget _buildSummaryItem(String label, String value, IconData icon) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(spacingS),
+          decoration: BoxDecoration(
+            color: Color.fromRGBO(primaryColor.red, primaryColor.green, primaryColor.blue, 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: primaryColor),
+        ),
+        const SizedBox(width: spacingS),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: smallFontStyle),
+            Text(value, style: bodyFontStyleBold.copyWith(fontSize: 14)),
+          ],
+        ),
+      ],
+    );
+  }
 
   // Build one consultant row with background grid and positioned appointments
   Widget _buildConsultantTimelineRow(String rowLabel) {
@@ -496,23 +521,40 @@ class _AppointmentPageState extends State<AppointmentPage> {
                   width: slotWidth,
                   height: rowHeight,
                   decoration: BoxDecoration(
-                    color: even ? Colors.pink[50] : Colors.white,
+                    color: even ? Color.fromRGBO(neutralLight.red, neutralLight.green, neutralLight.blue, 0.3) : backgroundPrimary,
                     border: Border(
-                      right: BorderSide(color: Colors.grey[300]!),
-                      top: BorderSide(color: Colors.grey[300]!),
-                      bottom: BorderSide(color: Colors.grey[300]!),
+                      right: BorderSide(color: neutralMedium, width: 0.5),
+                      top: BorderSide(color: neutralMedium, width: 0.5),
+                      bottom: BorderSide(color: neutralMedium, width: 0.5),
                     ),
                   ),
                 );
               }),
             ),
-            // Now line
+            // Modern now line
             if (isToday && now.isAfter(_dayStart(selectedDate)) && now.isBefore(_dayEnd(selectedDate)))
               Positioned(
                 left: _leftFromTime(now),
                 top: 0,
                 bottom: 0,
-                child: Container(width: 2, color: Colors.redAccent),
+                child: Container(
+                  width: 3,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [errorColor, warningColor],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color.fromRGBO(errorColor.red, errorColor.green, errorColor.blue, 0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             // Appointments overlay with simple overlap lane assignment (up to 3 lanes visually)
             ..._assignLanes(appointments).map((laneItem) {
@@ -559,11 +601,15 @@ class _AppointmentPageState extends State<AppointmentPage> {
                     _showAppointmentForm(rowLabel, slotKey, appt);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: spacingS, vertical: spacingXS),
                     decoration: BoxDecoration(
                       color: color,
-                      border: Border.all(color: Colors.grey[500]!),
-                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: const [subtleShadow],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: color.darken(0.2),
+                        width: 1,
+                      ),
                     ),
                     child: FittedBox(
                       alignment: Alignment.centerLeft,
@@ -571,11 +617,27 @@ class _AppointmentPageState extends State<AppointmentPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.person, size: 12),
-                          const SizedBox(width: 4),
+                          Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: neutralWhite,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              size: 10,
+                              color: color.darken(0.3),
+                            ),
+                          ),
+                          const SizedBox(width: spacingXS),
                           Text(
                             userName.isEmpty ? 'Appointment' : userName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                              color: neutralBlack,
+                            ),
                           ),
                         ],
                       ),
@@ -666,29 +728,71 @@ class _AppointmentPageState extends State<AppointmentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: backgroundSecondary,
       appBar: AppBar(
-        title: const Text('Appointments Scheduler'),
+        title: const Text('Appointments Scheduler', style: headingFontStyle),
+        backgroundColor: primaryColor,
+        foregroundColor: neutralWhite,
+        elevation: 0,
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
       ),
       drawer: const MyDrawer(),
       body: Column(
         children: [
-          // Date picker row
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          // Modern date picker section
+          Container(
+            margin: const EdgeInsets.all(spacingM),
+            padding: const EdgeInsets.all(spacingL),
+            decoration: BoxDecoration(
+              color: backgroundPrimary,
+              borderRadius: cardRadius,
+              boxShadow: const [cardShadow],
+            ),
             child: Row(
               children: [
-                Text('Selected Date: ' +
-                    '${selectedDate.day.toString().padLeft(2, '0')}/'
-                    '${selectedDate.month.toString().padLeft(2, '0')}/'
-                    '${selectedDate.year}'),
-                const SizedBox(width: 16),
-                ElevatedButton(
+                Container(
+                  padding: const EdgeInsets.all(spacingM),
+                  decoration: BoxDecoration(
+                    gradient: primaryGradient,
+                    borderRadius: buttonRadius,
+                  ),
+                  child: const Icon(Icons.calendar_today, color: neutralWhite, size: 20),
+                ),
+                const SizedBox(width: spacingM),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Selected Date', style: captionFontStyle),
+                    Text(
+                      '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
+                      style: subHeadingFontStyle,
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
                   onPressed: () async {
                     final picked = await showDatePicker(
                       context: context,
                       initialDate: selectedDate,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2101),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: primaryColor,
+                              onPrimary: neutralWhite,
+                              surface: backgroundPrimary,
+                              onSurface: neutralBlack,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (picked != null && picked != selectedDate) {
                       setState(() {
@@ -696,7 +800,14 @@ class _AppointmentPageState extends State<AppointmentPage> {
                       });
                     }
                   },
-                  child: const Text('Select Date'),
+                  icon: const Icon(Icons.edit_calendar, size: 18),
+                  label: const Text('Change'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: secondaryColor,
+                    foregroundColor: neutralWhite,
+                    shape: RoundedRectangleBorder(borderRadius: buttonRadius),
+                    elevation: 0,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 if (widget.branchId.isEmpty)
@@ -779,16 +890,25 @@ class _AppointmentPageState extends State<AppointmentPage> {
 
                 return Column(
                   children: [
-                    // Timeline header
+                    // Modern timeline header
                     Container(
-                      color: Colors.grey[200],
+                      margin: const EdgeInsets.symmetric(horizontal: spacingM),
+                      padding: const EdgeInsets.all(spacingM),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color.fromRGBO(primaryColor.red, primaryColor.green, primaryColor.blue, 0.1), Color.fromRGBO(secondaryColor.red, secondaryColor.green, secondaryColor.blue, 0.1)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        border: Border.all(color: neutralMedium),
+                      ),
                       child: Row(
                         children: [
-                          const SizedBox(
+                          Container(
                             width: 150,
-                            child: Center(
-                              child: Text('Consultants & Rooms', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
+                            alignment: Alignment.center,
+                            child: const Text('Consultants & Rooms', style: bodyFontStyleBold),
                           ),
                           Expanded(
                             child: SizedBox(
@@ -812,7 +932,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                         ],
                       ),
                     ),
-                                        // Timeline grid + rows
+                    // Timeline grid + rows
                     Expanded(
                       child: _rows.isEmpty
                           ? Center(
@@ -835,38 +955,75 @@ class _AppointmentPageState extends State<AppointmentPage> {
                                 ],
                               ),
                             )
-                          : Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Consultant/Room names (sticky left) with utilization
-                                SizedBox(
-                                  width: 150,
-                                  child: ListView.builder(
-                                    controller: _vNamesController,
-                                    itemCount: _rows.length,
-                                    itemBuilder: (context, rowIdx) {
-                                final rowLabel = _rows[rowIdx];
-                                return Container(
-                                  height: rowHeight,
-                                  alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-                                    color: rowIdx % 2 == 0 ? Colors.pink[50] : Colors.white,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(rowLabel, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                      ),
-                                      Text(_utilizationPercent(rowLabel), style: const TextStyle(fontSize: 11)),
-                                    ],
-                                  ),
-                                );
-                              },
+                          : Container(
+                              margin: const EdgeInsets.symmetric(horizontal: spacingM),
+                              decoration: BoxDecoration(
+                                color: backgroundPrimary,
+                                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                                boxShadow: const [cardShadow],
+                                border: Border.all(color: neutralMedium),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Modern consultant/room names section
+                                  Container(
+                                    width: 150,
+                                    decoration: const BoxDecoration(
+                                      border: Border(right: BorderSide(color: neutralMedium)),
+                                    ),
+                                    child: ListView.builder(
+                                      controller: _vNamesController,
+                                      itemCount: _rows.length,
+                                      itemBuilder: (context, rowIdx) {
+                                  final rowLabel = _rows[rowIdx];
+                                  final isDoctor = _doctors.contains(rowLabel);
+                                  return Container(
+                                    height: rowHeight,
+                                    padding: const EdgeInsets.symmetric(horizontal: spacingM, vertical: spacingS),
+                                    decoration: BoxDecoration(
+                                      border: Border(bottom: BorderSide(color: neutralMedium)),
+                                      color: rowIdx % 2 == 0 ? neutralLight : backgroundPrimary,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 32,
+                                          height: 32,
+                                          decoration: BoxDecoration(
+                                            gradient: isDoctor ? primaryGradient : secondaryGradient,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            isDoctor ? Icons.person : Icons.meeting_room,
+                                            color: neutralWhite,
+                                            size: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(width: spacingS),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                rowLabel,
+                                                style: bodyFontStyleBold.copyWith(fontSize: 13),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              Text(
+                                                '${_utilizationPercent(rowLabel)} busy',
+                                                style: smallFontStyle.copyWith(color: neutralDark),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          ),
                           // Scrollable timeline body (horizontal + vertical)
                           Expanded(
                             child: Scrollbar(
@@ -887,19 +1044,53 @@ class _AppointmentPageState extends State<AppointmentPage> {
                                 ),
                               ),
                             ),
-                            ),
                           ],
                         ),
-                    ),
-                    // Summary bar
+                      ),
+                    // Modern summary bar
                     Container(
-                      color: Colors.grey[300],
-                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color.fromRGBO(primaryColor.red, primaryColor.green, primaryColor.blue, 0.05), Color.fromRGBO(accentColor.red, accentColor.green, accentColor.blue, 0.05)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: cardRadius,
+                        border: Border.all(color: neutralMedium),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text('Total Guests: 30, Total Appointments: 37, Open Appointments: 28, Services Value: Rs767,000.00, Total Booked: 9.59%'),
-                          Text('Muhammad Ashfaq'),
+                        children: [
+                          Expanded(
+                            child: Wrap(
+                              spacing: spacingL,
+                              runSpacing: spacingS,
+                              children: [
+                                _buildSummaryItem('Total Guests', '30', Icons.people),
+                                _buildSummaryItem('Appointments', '37', Icons.event),
+                                _buildSummaryItem('Open', '28', Icons.schedule),
+                                _buildSummaryItem('Revenue', 'Rs767,000', Icons.attach_money),
+                                _buildSummaryItem('Utilization', '9.59%', Icons.trending_up),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: spacingM, vertical: spacingS),
+                            decoration: BoxDecoration(
+                              gradient: primaryGradient,
+                              borderRadius: buttonRadius,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.admin_panel_settings, color: Colors.white, size: 16),
+                                const SizedBox(width: 8),
+                                const Text('Muhammad Ashfaq', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

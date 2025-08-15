@@ -5,7 +5,6 @@ import '../../models/user_model.dart';
 import '../../models/branch_model.dart';
 import '../../controllers/branch_controller.dart';
 import '../general_widgets/drawer.dart';
-
 import '../general_widgets/custom_filled_button.dart';
 import '../../styles/styles.dart';
 
@@ -267,15 +266,31 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: backgroundSecondary,
       appBar: AppBar(
-        title: const Text('Doctor Management'),
+        title: const Text('Doctor Management', style: headingFontStyle),
         backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: neutralWhite,
+        elevation: 0,
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _selectedBranch != null ? () => _showDoctorForm() : null,
-            tooltip: 'Add Doctor',
+          Container(
+            margin: EdgeInsets.only(right: spacingM),
+            child: IconButton(
+              icon: Container(
+                padding: EdgeInsets.all(spacingS),
+                decoration: BoxDecoration(
+                  color: Color.fromRGBO(neutralWhite.red, neutralWhite.green, neutralWhite.blue, 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.add, size: 20),
+              ),
+              onPressed: _selectedBranch != null ? () => _showDoctorForm() : null,
+              tooltip: 'Add Doctor',
+            ),
           ),
         ],
       ),
@@ -284,50 +299,98 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Branch selection header
+                // Modern branch selection header
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: tertiaryColor,
+                  margin: EdgeInsets.all(spacingM),
+                  padding: EdgeInsets.all(spacingL),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [backgroundPrimary, neutralLight],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: cardRadius,
+                    boxShadow: const [cardShadow],
+                    border: Border.all(color: neutralMedium),
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.business, color: Colors.black87),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Select Branch:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Container(
+                        padding: EdgeInsets.all(spacingM),
+                        decoration: BoxDecoration(
+                          gradient: secondaryGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.business, color: neutralWhite, size: 24),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: spacingM),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Branch Selection', style: captionFontStyle),
+                          const Text('Choose clinic location', style: subHeadingFontStyle),
+                        ],
+                      ),
+                      SizedBox(width: spacingL),
                       Expanded(
-                        child: Obx(() => DropdownButton<BranchModel>(
-                          value: _selectedBranch,
-                          isExpanded: true,
-                          items: _branchController.branches.map((branch) {
-                            return DropdownMenuItem(
-                              value: branch,
-                              child: Text(branch.branchName),
-                            );
-                          }).toList(),
-                          onChanged: (branch) {
-                            setState(() {
-                              _selectedBranch = branch;
-                            });
-                            if (branch != null) {
-                              _fetchDoctors();
-                            }
-                          },
-                          hint: const Text('Select a branch'),
-                        )),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: spacingM, vertical: spacingS),
+                          decoration: BoxDecoration(
+                            color: backgroundPrimary,
+                            borderRadius: inputRadius,
+                            border: Border.all(color: neutralMedium),
+                          ),
+                          child: Obx(() => DropdownButton<BranchModel>(
+                            value: _selectedBranch,
+                            isExpanded: true,
+                            underline: const SizedBox(),
+                            items: _branchController.branches.map((branch) {
+                              return DropdownMenuItem(
+                                value: branch,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    SizedBox(width: spacingS),
+                                    Text(branch.branchName, style: bodyFontStyle),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (branch) {
+                              setState(() {
+                                _selectedBranch = branch;
+                              });
+                              if (branch != null) {
+                                _fetchDoctors();
+                              }
+                            },
+                            hint: const Text('Select a branch', style: bodyFontStyle),
+                          )),
+                        ),
                       ),
-                      const SizedBox(width: 16),
-                      SizedBox(
-                        width: 150,
+                      SizedBox(width: spacingM),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: primaryGradient,
+                          borderRadius: buttonRadius,
+                          boxShadow: const [subtleShadow],
+                        ),
                         child: ElevatedButton.icon(
                           onPressed: _selectedBranch != null ? () => _showDoctorForm() : null,
-                          icon: const Icon(Icons.add),
+                          icon: const Icon(Icons.add, size: 20),
                           label: const Text('Add Doctor'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: neutralWhite,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: buttonRadius),
                           ),
                         ),
                       ),
@@ -346,73 +409,161 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                         )
                       : _doctors.isEmpty
                           ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.medical_services, size: 64, color: Colors.grey[400]),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No doctors added for ${_selectedBranch!.branchName}',
-                                    style: const TextStyle(fontSize: 16, color: Colors.grey),
+                              child: Container(
+                                margin: EdgeInsets.all(spacingXL),
+                                padding: EdgeInsets.all(spacingXXL),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [backgroundPrimary, neutralLight],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
                                   ),
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: 180,
-                                    child: ElevatedButton.icon(
-                                      onPressed: () => _showDoctorForm(),
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('Add First Doctor'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: primaryColor,
-                                        foregroundColor: Colors.white,
+                                  borderRadius: cardRadius,
+                                  boxShadow: const [cardShadow],
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 120,
+                                      height: 120,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [primaryColor.withOpacity(0.1), accentColor.withOpacity(0.1)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(60),
+                                      ),
+                                      child: Icon(
+                                        Icons.medical_services,
+                                        size: 64,
+                                        color: primaryColor,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(height: spacingL),
+                                    Text(
+                                      'No doctors yet',
+                                      style: headingFontStyle.copyWith(color: neutralBlack),
+                                    ),
+                                    SizedBox(height: spacingS),
+                                    Text(
+                                      'Add your first doctor for ${_selectedBranch!.branchName}',
+                                      style: bodyFontStyle,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: spacingL),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: primaryGradient,
+                                        borderRadius: buttonRadius,
+                                        boxShadow: const [subtleShadow],
+                                      ),
+                                      child: ElevatedButton.icon(
+                                        onPressed: () => _showDoctorForm(),
+                                        icon: const Icon(Icons.add, size: 20),
+                                        label: const Text('Add First Doctor'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.transparent,
+                                          foregroundColor: neutralWhite,
+                                          shadowColor: Colors.transparent,
+                                          padding: EdgeInsets.symmetric(horizontal: spacingL, vertical: spacingM),
+                                          shape: RoundedRectangleBorder(borderRadius: buttonRadius),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.all(spacingM),
                               itemCount: _doctors.length,
                               itemBuilder: (context, index) {
                                 final doctor = _doctors[index];
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: primaryColor,
-                                      child: Text(
-                                        doctor.name.isNotEmpty ? doctor.name[0].toUpperCase() : 'D',
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                      ),
+                                return Container(
+                                  margin: EdgeInsets.only(bottom: spacingM),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [backgroundPrimary, neutralLight],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
                                     ),
-                                    title: Text(
-                                      'Dr. ${doctor.name}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    borderRadius: cardRadius,
+                                    boxShadow: const [cardShadow],
+                                    border: Border.all(color: neutralMedium),
+                                  ),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(spacingL),
+                                    child: Row(
                                       children: [
-                                        if (doctor.specialization != null)
-                                          Text('Specialization: ${doctor.specialization}'),
-                                        if (doctor.phoneNumber != null)
-                                          Text('Phone: ${doctor.phoneNumber}'),
-                                        if (doctor.email != null)
-                                          Text('Email: ${doctor.email}'),
-                                      ],
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, color: Colors.blue),
-                                          onPressed: () => _showDoctorForm(doctor),
-                                          tooltip: 'Edit Doctor',
+                                        // Modern doctor avatar
+                                        Container(
+                                          width: 60,
+                                          height: 60,
+                                          decoration: BoxDecoration(
+                                            gradient: accentGradient,
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: const [subtleShadow],
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              doctor.name.isNotEmpty ? doctor.name[0].toUpperCase() : 'D',
+                                              style: const TextStyle(
+                                                color: neutralWhite,
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          onPressed: () => _deleteDoctor(doctor),
-                                          tooltip: 'Delete Doctor',
+                                        SizedBox(width: spacingM),
+                                        // Doctor info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Dr. ${doctor.name}',
+                                                style: subHeadingFontStyle.copyWith(color: neutralBlack),
+                                              ),
+                                              SizedBox(height: spacingXS),
+                                              if (doctor.specialization != null)
+                                                _buildInfoRow(Icons.medical_services, doctor.specialization!),
+                                              if (doctor.phoneNumber != null)
+                                                _buildInfoRow(Icons.phone, doctor.phoneNumber!),
+                                              if (doctor.email != null)
+                                                _buildInfoRow(Icons.email, doctor.email!),
+                                            ],
+                                          ),
+                                        ),
+                                        // Action buttons
+                                        Column(
+                                          children: [
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: infoColor.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: IconButton(
+                                                icon: Icon(Icons.edit, color: infoColor, size: 20),
+                                                onPressed: () => _showDoctorForm(doctor),
+                                                tooltip: 'Edit Doctor',
+                                              ),
+                                            ),
+                                            SizedBox(height: spacingS),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: errorColor.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: IconButton(
+                                                icon: Icon(Icons.delete, color: errorColor, size: 20),
+                                                onPressed: () => _deleteDoctor(doctor),
+                                                tooltip: 'Delete Doctor',
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -423,6 +574,26 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingXS),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(icon, size: 14, color: primaryColor),
+          ),
+          SizedBox(width: spacingS),
+          Text(text, style: captionFontStyle),
+        ],
+      ),
     );
   }
 }

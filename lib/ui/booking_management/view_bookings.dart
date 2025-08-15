@@ -62,6 +62,12 @@ class _ViewBookingsState extends State<ViewBookings> {
     return bookings.doc(selectedBranch.branchId).collection('bookings').doc(bookingService.serviceId).set(bookingService.toJson());
   }
 
+  void _filterData() {
+    setState(() {
+      // This will trigger a rebuild and apply the current filters
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,66 +78,110 @@ class _ViewBookingsState extends State<ViewBookings> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               // DatePicker to select date
-              SizedBox(
-                width: Get.width * .5,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // SizedBox(
-                    //   width: 300,
-                    //   child: Padding(
-                    //     padding: const EdgeInsets.all(8.0),
-                    //     child: CustomTextField(
-                    //       controller: nameController,
-                    //       title: "Name",
-                    //     ),
-                    //   ),
-                    // ),
-                    SizedBox(
-                      width: 300,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CustomTextField(
-                          controller: phoneController,
-                          title: "Phone",
+                    const Text(
+                      'Filter Bookings',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        SizedBox(
+                          width: 250,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: CustomTextField(
+                              controller: phoneController,
+                              title: "Phone",
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(
+                          width: 200,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              _selectDate(context);
+                            },
+                            icon: const Icon(Icons.calendar_today, size: 18),
+                            label: Text(
+                              selectedDate != null 
+                                ? DateFormat('dd/MM/yyyy').format(selectedDate!)
+                                : "Select Date"
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 180,
+                          child: DropdownButtonFormField(
+                            decoration: InputDecoration(
+                              labelText: "Select Branch",
+                              prefixIcon: const Icon(Icons.pin_drop_rounded),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            value: selectedBranch,
+                            items: branchController.branches.map((branch) {
+                              return DropdownMenuItem(
+                                value: branch,
+                                child: Text(
+                                  branch.branchName.toString(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (BranchModel? newValue) {
+                              if (newValue != null) {
+                                setState(() {
+                                  selectedBranch = newValue;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: 120,
+                          child: CustomFilledButton(
+                            title: "Apply",
+                            onPress: () {
+                              _filterData();
+                            },
+                            width: 120,
+                          ),
+                        ),
+                      ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _selectDate(context);
-                      },
-                      child: Text(selectedDate != null ? "Selected Date: ${DateFormat('dd/MM/yyyy').format(selectedDate!)}" : "Select Date"),
-                    ),
-                    DropdownButton(
-                      underline: const Divider(),
-                      value: selectedBranch,
-                      hint: const Text(
-                        "Select Branch",
-                      ),
-                      icon: const Icon(Icons.pin_drop_rounded),
-                      items: branchController.branches.map((branch) {
-                        return DropdownMenuItem(
-                          value: branch,
-                          child: Text(branch.branchName.toString()),
-                        );
-                      }).toList(),
-                      onChanged: (BranchModel? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            selectedBranch = newValue;
-                          });
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    CustomFilledButton(
-                      title: "Apply",
-                      onPress: () {
-                        setState(() {});
-                      },
-                      width: 100,
-                    )
                   ],
                 ),
               ),
@@ -188,26 +238,42 @@ class _ViewBookingsState extends State<ViewBookings> {
     // print("booking length ${roomBookings["1"]!.length},  roomBookings: $roomBookings");
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Total Appointments: ${docs.length}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue)),
-        ScrollConfiguration(
-          behavior: const ScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch}),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              color: primaryColor.withOpacity(.1),
-              padding: const EdgeInsets.all(20.0),
-              width: timeSlots.length * 100.0,
-              child: Table(
-                border: TableBorder.all(),
-                columnWidths: {for (var i = 0; i < timeSlots.length; i++) i: const FlexColumnWidth(1)},
-                children: [
-                  TableRow(
-                    children: [TableCell(child: Container(padding: const EdgeInsets.all(8.0), child: const Text('Room/Time')))] +
-                        timeSlots.map((ts) => TableCell(child: Container(padding: const EdgeInsets.all(8.0), child: Text(ts.format(context))))).toList(),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Total Appointments: ${docs.length}', 
+            style: const TextStyle(
+              fontSize: 20, 
+              fontWeight: FontWeight.bold, 
+              color: Colors.blue
+            )
+          ),
+        ),
+        Container(
+          height: 400, // Fixed height to prevent overflow
+          child: ScrollConfiguration(
+            behavior: const ScrollBehavior().copyWith(dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch}),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                color: primaryColor.withOpacity(.1),
+                padding: const EdgeInsets.all(20.0),
+                width: timeSlots.length * 100.0,
+                child: SingleChildScrollView(
+                  child: Table(
+                    border: TableBorder.all(),
+                    columnWidths: {for (var i = 0; i < timeSlots.length; i++) i: const FlexColumnWidth(1)},
+                    children: [
+                      TableRow(
+                        children: [TableCell(child: Container(padding: const EdgeInsets.all(8.0), child: const Text('Room/Time')))] +
+                            timeSlots.map((ts) => TableCell(child: Container(padding: const EdgeInsets.all(8.0), child: Text(ts.format(context))))).toList(),
+                      ),
+                      ...roomBookings.entries.map((entry) => buildAppointmentRow(entry.key, entry.value, timeSlots)),
+                    ],
                   ),
-                  ...roomBookings.entries.map((entry) => buildAppointmentRow(entry.key, entry.value, timeSlots)),
-                ],
+                ),
               ),
             ),
           ),

@@ -10,7 +10,7 @@ import 'package:booking_calendar/booking_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:aesthetics_labs_admin/ui/appointments/appointment_page.dart';
+import 'package:aesthetics_labs_admin/ui/appointments/appointment_page_simple.dart';
 
 class AddNewBooking extends StatefulWidget {
   const AddNewBooking({super.key});
@@ -91,7 +91,7 @@ class _AddNewBookingState extends State<AddNewBooking> {
                     print('AddNewBooking: Using branchId: $branchId for branch: ${(selectedBranch ?? branchController.branches[0]).branchName}');
                     return SizedBox(
                       height: 400, // Adjust as needed
-                      child: AppointmentPage(
+                      child: AppointmentPageSimple(
                         key: ValueKey(branchId), // Force rebuild when branch changes
                         branchId: branchId,
                       ),
