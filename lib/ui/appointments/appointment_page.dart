@@ -1043,10 +1043,11 @@ class _AppointmentPageState extends State<AppointmentPage> {
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                                                      ),
+                        ],
                       ),
+                    ),
+                  ),
                     // Modern summary bar
                     Container(
                       margin: const EdgeInsets.all(16),

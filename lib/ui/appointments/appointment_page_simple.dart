@@ -545,6 +545,40 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
     );
   }
 
+  // Calculate utilization percentage for a consultant for the visible day
+  String _utilizationPercent(String rowLabel) {
+    final appts = _appointmentsByConsultant[rowLabel] ?? [];
+    if (appts.isEmpty) return '0%';
+    
+    final dayStart = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 8, 0);
+    final dayEnd = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 22, 30);
+    
+    int booked = 0;
+    for (final appt in appts) {
+      DateTime? s;
+      DateTime? e;
+      final sr = appt['start'];
+      final er = appt['end'];
+      
+      if (sr is Timestamp) s = sr.toDate();
+      if (sr is DateTime) s = sr;
+      if (er is Timestamp) e = er.toDate();
+      if (er is DateTime) e = er;
+      
+      if (s == null) continue;
+      e ??= s.add(const Duration(minutes: 30)); // Default 30 min if no end time
+      
+      final vs = s.isBefore(dayStart) ? dayStart : s;
+      final ve = e.isAfter(dayEnd) ? dayEnd : e;
+      
+      if (ve.isAfter(vs)) booked += ve.difference(vs).inMinutes;
+    }
+    
+    final total = dayEnd.difference(dayStart).inMinutes;
+    final pct = (booked / total * 100).clamp(0, 100);
+    return '${pct.toStringAsFixed(0)}%';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -795,10 +829,20 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                                                     ),
                                                     const SizedBox(width: 6),
                                                     Expanded(
-                                                      child: Text(
-                                                        rowLabel,
-                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                                        overflow: TextOverflow.ellipsis,
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        children: [
+                                                          Text(
+                                                            rowLabel,
+                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                          Text(
+                                                            '${_utilizationPercent(rowLabel)} busy',
+                                                            style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
                                                   ],
