@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 const double defaultPadding = 20.0;
 const double defaultDrawerWidth = 300.0;
-const Color primaryColor = Color.fromARGB(255, 197, 132, 97);
-const Color secondaryColor = Color(0xFFE91717);
-const Color tertiaryColor = Color(0xFFF1E0D8);
-const Color lightGrey = Color(0xFF858585);
-const Color disabledColor = Color(0xFF858585);
+// Peach themed palette
+const Color primaryColor = Color.fromARGB(255, 197, 132, 97); // peach
+const Color secondaryColor = Color(0xFFF1E0D8);
+const Color tertiaryColor = Color(0xFFF6EBE3);
+const Color lightGrey = Color(0xFF9CADC1);
+const Color disabledColor = Color(0xFFB6C2D1);
 
 const headerFontStyle = TextStyle(
   fontSize: 33,
@@ -44,3 +45,11 @@ const bodyFontStyleBold = TextStyle(
   fontWeight: FontWeight.bold,
   color: Colors.black,
 );
+
+extension ColorShade on Color {
+  Color darken([double amount = .2]) {
+    final hsl = HSLColor.fromColor(this);
+    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    return hslDark.toColor();
+  }
+}

@@ -5,10 +5,18 @@ class UserModel {
   String userID;
   String name;
   String role;
+  String? branchId; // Association with clinic/branch
+  String? specialization; // Doctor's specialization
+  String? phoneNumber; // Contact info
+  String? email; // Email
   UserModel({
     required this.userID,
     required this.name,
     required this.role,
+    this.branchId,
+    this.specialization,
+    this.phoneNumber,
+    this.email,
   });
   
 
@@ -16,11 +24,19 @@ class UserModel {
     String? userID,
     String? name,
     String? role,
+    String? branchId,
+    String? specialization,
+    String? phoneNumber,
+    String? email,
   }) {
     return UserModel(
       userID: userID ?? this.userID,
       name: name ?? this.name,
       role: role ?? this.role,
+      branchId: branchId ?? this.branchId,
+      specialization: specialization ?? this.specialization,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      email: email ?? this.email,
     );
   }
 
@@ -29,6 +45,10 @@ class UserModel {
       'userID': userID,
       'name': name,
       'role': role,
+      'branchId': branchId,
+      'specialization': specialization,
+      'phoneNumber': phoneNumber,
+      'email': email,
     };
   }
 
@@ -37,6 +57,10 @@ class UserModel {
       userID: map['userID'] as String,
       name: map['name'] as String,
       role: map['role'] as String,
+      branchId: map['branchId'] as String?,
+      specialization: map['specialization'] as String?,
+      phoneNumber: map['phoneNumber'] as String?,
+      email: map['email'] as String?,
     );
   }
 
@@ -45,7 +69,7 @@ class UserModel {
   factory UserModel.fromJson(String source) => UserModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
-  String toString() => 'UserModel(userID: $userID, name: $name, role: $role)';
+  String toString() => 'UserModel(userID: $userID, name: $name, role: $role, branchId: $branchId, specialization: $specialization, phoneNumber: $phoneNumber, email: $email)';
 
   @override
   bool operator ==(covariant UserModel other) {
@@ -54,9 +78,13 @@ class UserModel {
     return 
       other.userID == userID &&
       other.name == name &&
-      other.role == role;
+      other.role == role &&
+      other.branchId == branchId &&
+      other.specialization == specialization &&
+      other.phoneNumber == phoneNumber &&
+      other.email == email;
   }
 
   @override
-  int get hashCode => userID.hashCode ^ name.hashCode ^ role.hashCode;
+  int get hashCode => userID.hashCode ^ name.hashCode ^ role.hashCode ^ branchId.hashCode ^ specialization.hashCode ^ phoneNumber.hashCode ^ email.hashCode;
 }

@@ -20,18 +20,19 @@ class LoginPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(100),
+            preferredSize: const Size.fromHeight(60),
             child: Center(
               child: CachedNetworkImage(
                 imageUrl: "https://firebasestorage.googleapis.com/v0/b/aesthetics-lab-1.firebasestorage.app/o/logo-black.png?alt=media&token=4943f29c-0e3a-4be9-a4fe-c6693c55162d",
+                height: 40,
                 placeholder: (context, url) => const SizedBox(
-                  height: 60,
+                  height: 40,
                   width: 200,
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   width: 200,
-                  height: 60,
+                  height: 40,
                   alignment: Alignment.center,
                   child: const Text(
                     'Aesthetics Lab',

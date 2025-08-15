@@ -20,7 +20,7 @@ class CustomFilledButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         foregroundColor: Colors.black,
         backgroundColor: isDisabled != null && isDisabled == true ? disabledColor : color ?? primaryColor,
-        minimumSize: width == null ? const Size.fromHeight(50) : Size(width!, height ?? 50),
+        minimumSize: Size(width ?? 120, height ?? 50),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),
         ),

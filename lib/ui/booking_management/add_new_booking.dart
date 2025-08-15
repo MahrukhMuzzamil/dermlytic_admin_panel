@@ -6,11 +6,11 @@ import 'package:aesthetics_labs_admin/models/session_model.dart';
 import 'package:aesthetics_labs_admin/styles/styles.dart';
 import 'package:aesthetics_labs_admin/ui/general_widgets/base_layout.dart';
 import 'package:aesthetics_labs_admin/ui/general_widgets/custom_app_bar.dart';
-import 'package:aesthetics_labs_admin/ui/general_widgets/custom_text_field.dart';
 import 'package:booking_calendar/booking_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:aesthetics_labs_admin/ui/appointments/appointment_page.dart';
 
 class AddNewBooking extends StatefulWidget {
   const AddNewBooking({super.key});
@@ -21,28 +21,29 @@ class AddNewBooking extends StatefulWidget {
 
 class _AddNewBookingState extends State<AddNewBooking> {
   final now = DateTime.now();
-  late BookingService currentBookingService;
-  CollectionReference bookings = FirebaseFirestore.instance.collection('bookings');
-  BranchController branchController = Get.find(tag: "branchController");
+  final BranchController branchController = Get.find(tag: "branchController");
+  final ProductController productController = Get.find(tag: "productController");
   final TextEditingController _userPhoneController = TextEditingController();
   final TextEditingController _userNameController = TextEditingController();
-  ProductController productController = Get.find(tag: "productController");
-  late BranchModel selectedBranch;
-  late ProductModel selectedProduct = productController.products[0];
-  final GlobalKey _bookingCalendarKey = GlobalKey();
+  CollectionReference bookings = FirebaseFirestore.instance.collection('bookings');
+  BranchModel? selectedBranch;
+  ProductModel? selectedProduct;
   int selectedRoom = 1;
+  late BookingService currentBookingService;
 
   @override
   void initState() {
     super.initState();
-    selectedBranch = branchController.branches[0];
+    // Will be set in build when data is available
+  }
 
+  void updateBookingService(BranchModel branch, ProductModel product) {
     currentBookingService = BookingService(
-      serviceName: selectedProduct.title,
-      serviceDuration: selectedProduct.duration.toInt(),
+      serviceName: product.title,
+      serviceDuration: product.duration.toInt(),
       bookingStart: DateTime(now.year, now.month, now.day, 12, 0),
       bookingEnd: DateTime(now.year, now.month, now.day, 21, 0),
-      userId: "userID",
+      userId: _userPhoneController.text.isNotEmpty ? _userPhoneController.text : "userID",
       roomId: selectedRoom.toString(),
     );
   }
@@ -50,111 +51,59 @@ class _AddNewBookingState extends State<AddNewBooking> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: customAppBar(titleText: "Booking"),
+      appBar: customAppBar(titleText: "Book Appointment"),
       body: BaseLayout(
-        child: SingleChildScrollView(
-          child: Center(
+        child: Obx(() {
+          if (branchController.isLoading.value || productController.products.isEmpty || branchController.branches.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final branch = selectedBranch ?? branchController.branches[0];
+          final product = selectedProduct ?? productController.products[0];
+          updateBookingService(branch, product);
+          return SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (branchController.branches.isNotEmpty && productController.products.isNotEmpty)
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildDropdownContainer(
-                          child: DropdownButton(
-                            isExpanded: true,
-                            value: selectedProduct,
-                            hint: const Text("Select Treatment"),
-                            icon: const Icon(Icons.calendar_month),
-                            items: productController.products.map((productItem) {
-                              return DropdownMenuItem(
-                                value: productItem,
-                                child: Text(productItem.title.toString()),
-                              );
-                            }).toList(),
-                            onChanged: (ProductModel? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  selectedProduct = newValue;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        _buildDropdownContainer(
-                          child: DropdownButton(
-                            isExpanded: true,
-                            value: selectedBranch,
-                            hint: const Text("Select Branch"),
-                            icon: const Icon(Icons.pin_drop_sharp),
-                            items: branchController.branches.map((branch) {
-                              return DropdownMenuItem(
-                                value: branch,
-                                child: Text(branch.branchName.toString()),
-                              );
-                            }).toList(),
-                            onChanged: (BranchModel? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  selectedBranch = newValue;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        _buildDropdownContainer(
-                          child: DropdownButton(
-                            isExpanded: true,
-                            value: selectedRoom,
-                            hint: const Text("Select Room"),
-                            icon: const Icon(Icons.house_rounded),
-                            items: List.generate(selectedBranch.roomsCount ?? 1, (index) {
-                              return DropdownMenuItem(
-                                value: index + 1,
-                                child: Text("Room ${index + 1}"),
-                              );
-                            }),
-                            onChanged: (int? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  selectedRoom = newValue;
-                                });
-                              }
-                            },
-                          ),
-                        ),
-                        CustomTextField(title: "User Phone", controller: _userPhoneController, width: 250),
-                        CustomTextField(title: "User Name", controller: _userNameController, width: 250),
-                      ],
+                // Branch selector
+                Row(
+                  children: [
+                    _buildDropdownContainer(
+                      child: DropdownButton<BranchModel>(
+                        value: selectedBranch ?? branchController.branches[0],
+                        isExpanded: true,
+                        items: branchController.branches
+                            .map((b) => DropdownMenuItem(value: b, child: Text(b.branchName)))
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedBranch = val;
+                          });
+                        },
+                        hint: const Text('Select Branch'),
+                      ),
                     ),
-                  ),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * .8,
-                  child: Center(
-                    child: BookingCalendar(
-                      bookingService: currentBookingService,
-                      convertStreamResultToDateTimeRanges: ({required dynamic streamResult}) => [],
-                      getBookingStream: ({required DateTime start, required DateTime end}) => null, // Removed Firestore fetch
-                      uploadBooking: uploadBookingFirebase,
-                      bookedSlotColor: primaryColor,
-                      bookingButtonColor: primaryColor,
-                      selectedSlotColor: secondaryColor,
-                      availableSlotColor: tertiaryColor,
-                      loadingWidget: const Center(child: Text('Loading...')), // Updated
-                      uploadingWidget: const CircularProgressIndicator(),
-                      errorWidget: const Center(child: Text('Error occurred')), // Updated
-                      locale: 'en_us',
-                      startingDayOfWeek: StartingDayOfWeek.monday,
-                      wholeDayIsBookedWidget: const Text('Sorry, everything is booked'),
-                      bookingGridCrossAxisCount: 4,
-                    ),
-                  ),
+                  ],
                 ),
+                // Appointment calendar/list at the top
+                Builder(
+                  builder: (context) {
+                    final branchId = (selectedBranch ?? branchController.branches[0]).branchId ?? '';
+                    print('AddNewBooking: Using branchId: $branchId for branch: ${(selectedBranch ?? branchController.branches[0]).branchName}');
+                    return SizedBox(
+                      height: 400, // Adjust as needed
+                      child: AppointmentPage(
+                        key: ValueKey(branchId), // Force rebuild when branch changes
+                        branchId: branchId,
+                      ),
+                    );
+                  }
+                ),
+                const Divider(),
+                // Booking form below
               ],
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
@@ -173,20 +122,28 @@ class _AddNewBookingState extends State<AddNewBooking> {
       child: child,
     );
   }
+  
 
   /// Uploads new booking to Firestore
   Future<void> uploadBookingFirebase({required BookingService newBooking}) async {
     try {
       await bookings
-          .doc(selectedBranch.branchId)
+          .doc((selectedBranch ?? branchController.branches[0]).branchId)
           .collection('bookings')
           .add(newBooking.toJson());
-
-      print("Booking Added");
       _userNameController.clear();
       _userPhoneController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking successful!')),
+        );
+      }
     } catch (error) {
-      print("Failed to add booking: $error");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add booking: $error')),
+        );
+      }
     }
   }
 }

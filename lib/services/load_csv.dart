@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:get/get.dart';
 
 Future<List<List<dynamic>>> loadCsv(String path) async {
   try {
@@ -35,6 +36,7 @@ Future<List<BookingService>> processCsvData() async {
 
   for (var i = 1; i < salesData.length; i++) {
     var row = salesData[i];
+    
 
     var invoiceNoIndex = salesHeaders.indexOf('Invoice No');
     var serviceNameIndex = salesHeaders.indexOf('Item Name');
@@ -153,7 +155,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       home: Scaffold(
         appBar: AppBar(title: const Text('Bookings')),
         body: ListView.builder(
