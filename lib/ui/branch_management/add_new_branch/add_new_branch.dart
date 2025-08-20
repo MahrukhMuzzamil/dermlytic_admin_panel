@@ -46,10 +46,12 @@ class _AddNewBranchState extends State<AddNewBranch> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   SizedBox(
                     width: Get.width * .35,
                     child: Column(
@@ -128,7 +130,8 @@ class _AddNewBranchState extends State<AddNewBranch> {
                       },
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(20),

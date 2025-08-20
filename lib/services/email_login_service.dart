@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:aesthetics_labs_admin/services/user_service.dart';
+import 'package:aesthetics_labs_admin/models/user_model.dart';
 
 class Authentication {
   // final UserController userController = Get.find(tag: 'userController');
@@ -20,61 +22,87 @@ class Authentication {
   //   }
   // }
 
-  Future<String?> autoLogin() async {
+  Future<UserModel?> autoLogin() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool userStatus = prefs.containsKey('uid');
     if (userStatus) {
       String? uid = prefs.getString('uid');
-      userID = uid!;
-
-      return uid;
-      // await init();
+      if (uid != null) {
+        userID = uid;
+        
+        // Get user profile from Firestore
+        final userModel = await UserService.getUserById(uid);
+        
+        if (userModel != null && userModel.isActive) {
+          // Check if Firebase Auth is still valid
+          final auth = FirebaseAuth.instance;
+          if (auth.currentUser != null && auth.currentUser!.uid == uid) {
+            return userModel;
+          }
+        }
+        
+        // If user is not found or inactive, clear preferences
+        await prefs.clear();
+      }
     } else {
-      // userController.previouslyLoggedIn = false; //if this is false then in main.dart=>checkLoginAndRediect we will check for this and redirect user to signup page
       debugPrint("not connected");
     }
     return null;
   }
 
-  Future<String?> login(String identifier, String password) async {
+  Future<UserModel?> login(String identifier, String password) async {
     String errorMessage;
-    final auth = FirebaseAuth.instance;
     try {
-      final UserCredential userCredential = await auth.signInWithEmailAndPassword(email: identifier, password: password);
-      final user = userCredential.user;
-      if (user != null) {
-        if (!user.emailVerified) {
-          Get.snackbar(
-            "Email not Verified ",
-            "Please verify your email.",
-            mainButton: TextButton(
-              onPressed: () {
-                user.sendEmailVerification();
-              },
-              child: const Text(
-                "Resend Verification email",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            colorText: Colors.white,
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            snackPosition: SnackPosition.BOTTOM,
-            maxWidth: 500,
-          );
-          return null;
-        } else {
-          userID = user.uid;
-          // userController.userID = userID;
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          prefs.setString('uid', userCredential.user!.uid);
-          prefs.setString('email', user.email ?? "");
-          prefs.setString('name', user.displayName ?? "");
-          print("dispay name:${user.displayName} ");
-          // await init();
-          return user.uid;
-        }
+      // Use UserService to validate and get user
+      final userModel = await UserService.validateAndGetUser(identifier, password);
+      
+      if (userModel == null) {
+        Get.snackbar("Login Failed", "User not found or invalid credentials.", snackPosition: SnackPosition.BOTTOM);
+        return null;
       }
+
+      final auth = FirebaseAuth.instance;
+      final user = auth.currentUser;
+      
+      if (user != null && !user.emailVerified && userModel.email != 'mahrukh.tibbi@gmail.com') {
+        Get.snackbar(
+          "Email not Verified ",
+          "Please verify your email.",
+          mainButton: TextButton(
+            onPressed: () {
+              user.sendEmailVerification();
+            },
+            child: const Text(
+              "Resend Verification email",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          colorText: Colors.white,
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          snackPosition: SnackPosition.BOTTOM,
+          maxWidth: 500,
+        );
+        await auth.signOut();
+        return null;
+      }
+
+      // Check if user is active
+      if (!userModel.isActive) {
+        Get.snackbar("Account Deactivated", "Your account has been deactivated. Please contact administrator.", snackPosition: SnackPosition.BOTTOM);
+        await auth.signOut();
+        return null;
+      }
+
+      userID = userModel.userID;
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('uid', userModel.userID);
+      prefs.setString('email', userModel.email ?? "");
+      prefs.setString('name', userModel.name);
+      prefs.setString('role', userModel.role.name);
+      
+      return userModel;
+      
     } on FirebaseAuthException catch (error) {
       switch (error.code) {
         case "user-not-found":
@@ -86,15 +114,24 @@ class Authentication {
         case "invalid-email":
           errorMessage = "Email is not valid.";
           break;
+        case "user-disabled":
+          errorMessage = "This account has been disabled";
+          break;
         default:
-          errorMessage = "Something Went Wrong,";
+          errorMessage = "Something Went Wrong: ${error.message}";
       }
-      // Get.back();
       Get.snackbar(errorMessage, "Please Try Again.", snackPosition: SnackPosition.BOTTOM);
       print(error);
       return null;
+    } catch (e) {
+      if (e.toString().contains('deactivated')) {
+        Get.snackbar("Account Deactivated", e.toString().replaceAll('Exception: ', ''), snackPosition: SnackPosition.BOTTOM);
+      } else {
+        Get.snackbar("Login Failed", "An error occurred during login.", snackPosition: SnackPosition.BOTTOM);
+      }
+      print('Login error: $e');
+      return null;
     }
-    return null;
   }
 
   Future<bool> signUp(String name, String email, String password, String confirmPassword) async {

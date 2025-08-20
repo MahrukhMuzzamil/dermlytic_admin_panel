@@ -61,12 +61,46 @@ class _AppointmentPageState extends State<AppointmentPage> {
     
     try {
       // Fetch doctors for this branch
-      final doctorSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: 'doctor')
+      // 1) Primary source: dedicated doctors collection
+      var doctorSnapshot = await FirebaseFirestore.instance
+          .collection('doctors')
           .where('branchId', isEqualTo: widget.branchId)
+          .where('isActive', isEqualTo: true)
           .get();
       
+      // 2) Fallback to users collection if doctors collection empty (legacy)
+      if (doctorSnapshot.docs.isEmpty) {
+        doctorSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'doctor')
+            .where('branchId', isEqualTo: widget.branchId)
+            .where('isActive', isEqualTo: true)
+            .get();
+      }
+      
+      // CRITICAL DEBUG: Add exact same debugging as DoctorManagement
+      print('DEBUG: AppointmentPage - Using EXACT same query as DoctorManagement');
+      print('DEBUG: AppointmentPage - Query returned ${doctorSnapshot.docs.length} documents');
+      
+      // Debug: Also check what doctors exist across ALL branches in doctors collection
+      final allDoctorsSnapshot = await FirebaseFirestore.instance
+          .collection('doctors')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      final allUsersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      print('DEBUG: AppointmentPage - Total doctors across all branches: ${allDoctorsSnapshot.docs.length}');
+      print('DEBUG: AppointmentPage - Total active users: ${allUsersSnapshot.docs.length}');
+      
+      for (var doc in allUsersSnapshot.docs) {
+        final data = doc.data();
+        print('DEBUG: AppointmentPage - User ${data['name']} - role: ${data['role']} - branch: ${data['branchId']}');
+      }
+
       final doctors = doctorSnapshot.docs.map((doc) {
         final data = doc.data();
         final doctorName = data['name'] as String? ?? 'Unknown Doctor';

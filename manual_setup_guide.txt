@@ -1,0 +1,112 @@
+🚨 MANUAL FIREBASE SETUP - STEP BY STEP 🚨
+
+PROBLEM: The user mahrukh.tibbi@gmail.com cannot login
+CAUSE: Either Firebase Auth user OR Firestore document is missing/wrong
+
+=== STEP 1: CHECK FIREBASE AUTH ===
+1. Go to: https://console.firebase.google.com
+2. Select project: "aesthetics-lab-1" 
+3. Go to: Authentication → Users
+4. LOOK FOR: mahrukh.tibbi@gmail.com
+
+IF USER EXISTS:
+- Copy the UID (something like: abc123def456789xyz)
+- Go to STEP 2
+
+IF USER DOES NOT EXIST:
+- Click "Add user"
+- Email: mahrukh.tibbi@gmail.com
+- Password: admin123456
+- Click "Add user"
+- Copy the UID that gets generated
+- Go to STEP 2
+
+=== STEP 2: CHECK/CREATE FIRESTORE DOCUMENT ===
+1. Go to: Firestore Database → Data tab
+2. Look for collection: "users"
+3. Look for document with UID from Step 1
+
+IF DOCUMENT EXISTS:
+- Check if it has all required fields
+- Go to STEP 3
+
+IF DOCUMENT DOES NOT EXIST:
+- Click "Start collection" (if no users collection) OR click "Add document"
+- Collection ID: users
+- Document ID: [paste the UID from Step 1]
+- Add these fields EXACTLY:
+
+Field: userID
+Type: string
+Value: [paste the UID from Step 1]
+
+Field: name  
+Type: string
+Value: Mahrukh Tibbi
+
+Field: email
+Type: string  
+Value: mahrukh.tibbi@gmail.com
+
+Field: role
+Type: string
+Value: admin
+
+Field: isActive
+Type: boolean
+Value: true
+
+Field: createdAt
+Type: string
+Value: 2024-01-15T10:00:00.000Z
+
+Field: permissions
+Type: array
+Values: (add each as separate string)
+- createUsers
+- viewUsers  
+- updateUsers
+- deleteUsers
+- createBranches
+- viewBranches
+- updateBranches
+- deleteBranches
+- createDoctors
+- viewDoctors
+- updateDoctors
+- deleteDoctors
+- createAppointments
+- viewAppointments
+- updateAppointments
+- deleteAppointments
+- createServices
+- viewServices
+- updateServices
+- deleteServices
+- createBookings
+- viewBookings
+- updateBookings
+- deleteBookings
+- viewReports
+- viewAnalytics
+
+Click SAVE
+
+=== STEP 3: TEST LOGIN ===
+1. Go to: http://localhost:8080
+2. Email: mahrukh.tibbi@gmail.com
+3. Password: admin123456
+4. Click Login
+
+IF STILL FAILS:
+- Make sure UID in Firebase Auth matches Document ID in Firestore
+- Make sure email is verified in Firebase Auth
+- Make sure user is not disabled in Firebase Auth
+
+=== CRITICAL: UID MUST MATCH! ===
+The UID from Firebase Auth MUST be the exact same as the Document ID in Firestore!
+
+Example:
+Firebase Auth UID: abc123def456789xyz
+Firestore Document ID: abc123def456789xyz
+☝️ THESE MUST BE IDENTICAL!

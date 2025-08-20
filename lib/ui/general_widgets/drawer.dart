@@ -8,6 +8,9 @@ import 'package:aesthetics_labs_admin/ui/general_widgets/custom_filled_button.da
 import 'package:aesthetics_labs_admin/ui/service_management/add_new_service.dart';
 import 'package:aesthetics_labs_admin/ui/service_management/view_all_services.dart';
 import 'package:aesthetics_labs_admin/ui/doctor_management/doctor_management_page.dart';
+import 'package:aesthetics_labs_admin/ui/user_management/user_management_page.dart';
+import 'package:aesthetics_labs_admin/ui/general_widgets/permission_wrapper.dart';
+import 'package:aesthetics_labs_admin/models/user_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -51,83 +54,211 @@ class MyDrawer extends StatelessWidget {
 
               Column(
                 children: [
+                  // Dashboard - Available to all users
                   ListTile(
                     title: const Text('Dashboard'),
+                    leading: const Icon(Icons.dashboard),
                     onTap: () {
                       Get.off(const SchedulerPage(), preventDuplicates: false);
                     },
                   ),
-                  ListTile(
-                    title: const Text('Add New Branch'),
-                    onTap: () {
-                      Get.to(AddNewBranch());
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('View All Branches'),
-                    onTap: () {
-                      Get.to(const ViewAllBranches());
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Doctor Management'),
-                    onTap: () {
-                      Get.to(const DoctorManagementPage());
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Add new Service'),
-                    onTap: () {
-                      Get.to(
-                        const AddNewService(),
-                        preventDuplicates: false,
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('View all services'),
-                    onTap: () {
-                      Get.off(ViewAllServices());
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Add new Booking'),
-                    onTap: () {
-                      Get.off(const AddNewBooking(), preventDuplicates: false);
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('View All Bookings'),
-                    onTap: () {
-                      Get.off(const ViewBookings(), preventDuplicates: false);
-                    },
+                  
+                                        // User Management - Only for Admin
+                  PermissionWrapper(
+                    anyOfPermissions: [Permission.createUsers, Permission.viewUsers],
+                    child: ListTile(
+                      title: const Text('User Management'),
+                      leading: const Icon(Icons.people),
+                      onTap: () {
+                        Get.to(const UserManagementPage());
+                      },
+                    ),
                   ),
                   
-                  ListTile(
-                    title: const Text('View new Bookings'),
-                    onTap: () {
-                      Get.to(
-                        const ViewBookings(isLatest: true),
-                        preventDuplicates: false,
-                      );
-                    },
+                  // Branch Management
+                  PermissionWrapper(
+                    requiredPermission: Permission.createBranches,
+                    child: ListTile(
+                      title: const Text('Add New Branch'),
+                      leading: const Icon(Icons.add_business),
+                      onTap: () {
+                        Get.to(AddNewBranch());
+                      },
+                    ),
+                  ),
+                  PermissionWrapper(
+                    requiredPermission: Permission.viewBranches,
+                    child: ListTile(
+                      title: const Text('View All Branches'),
+                      leading: const Icon(Icons.business),
+                      onTap: () {
+                        Get.to(const ViewAllBranches());
+                      },
+                    ),
                   ),
                   
-                  /*ListTile(
-                    title: const Text('Reports'),
-                    onTap: () async {
-                      final bookings = await processCsvData();
-                      Get.to(
-                        ReportsData(bookings: bookings),
-                        preventDuplicates: false,
-                      );
-                    },
-                  ),*/
+                  // Doctor Management
+                  PermissionWrapper(
+                    anyOfPermissions: [
+                      Permission.createDoctors,
+                      Permission.viewDoctors,
+                      Permission.updateDoctors,
+                    ],
+                    child: ListTile(
+                      title: const Text('Doctor Management'),
+                      leading: const Icon(Icons.medical_services),
+                      onTap: () {
+                        Get.to(const DoctorManagementPage());
+                      },
+                    ),
+                  ),
+                  
+                  // Service Management
+                  PermissionWrapper(
+                    requiredPermission: Permission.createServices,
+                    child: ListTile(
+                      title: const Text('Add new Service'),
+                      leading: const Icon(Icons.add_circle),
+                      onTap: () {
+                        Get.to(
+                          const AddNewService(),
+                          preventDuplicates: false,
+                        );
+                      },
+                    ),
+                  ),
+                  PermissionWrapper(
+                    requiredPermission: Permission.viewServices,
+                    child: ListTile(
+                      title: const Text('View all services'),
+                      leading: const Icon(Icons.room_service),
+                      onTap: () {
+                        Get.off(ViewAllServices());
+                      },
+                    ),
+                  ),
+                  
+                  // Booking Management
+                  PermissionWrapper(
+                    requiredPermission: Permission.createBookings,
+                    child: ListTile(
+                      title: const Text('Add new Booking'),
+                      leading: const Icon(Icons.book_online),
+                      onTap: () {
+                        Get.off(const AddNewBooking(), preventDuplicates: false);
+                      },
+                    ),
+                  ),
+                  PermissionWrapper(
+                    requiredPermission: Permission.viewBookings,
+                    child: ListTile(
+                      title: const Text('View All Bookings'),
+                      leading: const Icon(Icons.list_alt),
+                      onTap: () {
+                        Get.off(const ViewBookings(), preventDuplicates: false);
+                      },
+                    ),
+                  ),
+                  PermissionWrapper(
+                    requiredPermission: Permission.viewBookings,
+                    child: ListTile(
+                      title: const Text('View new Bookings'),
+                      leading: const Icon(Icons.new_releases),
+                      onTap: () {
+                        Get.to(
+                          const ViewBookings(isLatest: true),
+                          preventDuplicates: false,
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  // Reports - Only for users with report permissions
+                  PermissionWrapper(
+                    requiredPermission: Permission.viewReports,
+                    child: ListTile(
+                      title: const Text('Reports'),
+                      leading: const Icon(Icons.analytics),
+                      onTap: () {
+                        Get.snackbar('Coming Soon', 'Reports feature will be available soon');
+                      },
+                    ),
+                  ),
                 ],
               ),
 
               const SizedBox(height: 20),
 
+              // User Info Section
+              GetBuilder<UserController>(
+                tag: 'userController',
+                builder: (userController) {
+                  final user = userController.user;
+                  
+                  if (user != null) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.blue[100],
+                              child: Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  Text(
+                                    user.roleDisplayName,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (user.email != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            user.email!,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+                  return const SizedBox.shrink();
+                },
+              ),
+              
+              const SizedBox(height: 20),
          
               // Logout Button
               Padding(

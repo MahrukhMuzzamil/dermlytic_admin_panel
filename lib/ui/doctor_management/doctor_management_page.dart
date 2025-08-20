@@ -42,13 +42,53 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
     
     setState(() => _loading = true);
     try {
-      final snapshot = await FirebaseFirestore.instance
+      // Primary source: dedicated doctors collection
+      final doctorsSnap = await FirebaseFirestore.instance
+          .collection('doctors')
+          .where('branchId', isEqualTo: _selectedBranch!.branchId)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      // Legacy fallback: users collection with role=doctor (existing data before migration)
+      final usersSnap = await FirebaseFirestore.instance
           .collection('users')
           .where('role', isEqualTo: 'doctor')
           .where('branchId', isEqualTo: _selectedBranch!.branchId)
+          .where('isActive', isEqualTo: true)
           .get();
-      
-      _doctors = snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
+
+      print('DEBUG: DoctorManagement - Fetched doctors={${doctorsSnap.docs.length}} and legacyUsers={${usersSnap.docs.length}} for branch=${_selectedBranch!.branchId}');
+
+      // Merge both sources, de-dup by id
+      final Map<String, UserModel> merged = {};
+
+      for (final d in doctorsSnap.docs) {
+        final data = d.data();
+        data['userID'] = d.id;
+        merged[d.id] = UserModel.fromMap(data);
+      }
+
+      for (final u in usersSnap.docs) {
+        final data = u.data();
+        data['userID'] = u.id;
+        merged.putIfAbsent(u.id, () => UserModel.fromMap(data));
+      }
+
+      _doctors = merged.values.toList();
+
+      // Debug totals across collections
+      final allDoctorsSnapshot = await FirebaseFirestore.instance
+          .collection('doctors')
+          .where('isActive', isEqualTo: true)
+          .get();
+      final allUsersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'doctor')
+          .where('isActive', isEqualTo: true)
+          .get();
+      print('DEBUG: Totals - doctorsColl=${allDoctorsSnapshot.docs.length}, usersColl(role=doctor)=${allUsersSnapshot.docs.length}');
+
+      print('DEBUG: Found ${_doctors.length} doctors for branch ${_selectedBranch!.branchId}');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching doctors: $e')),
@@ -186,7 +226,8 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                       final userData = UserModel(
                         userID: doctor?.userID ?? FirebaseFirestore.instance.collection('users').doc().id,
                         name: nameController.text.trim(),
-                        role: 'doctor',
+                        role: UserRole.doctor, // Create actual doctors that sync with AppointmentPage
+                        permissions: UserModel.getDefaultPermissions(UserRole.doctor),
                         branchId: _selectedBranch!.branchId,
                         specialization: specializationController.text.trim().isEmpty ? null : specializationController.text.trim(),
                         phoneNumber: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
@@ -194,10 +235,35 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                       );
 
                       try {
+                        // 1) Write full record to doctors collection
+                        final doctorData = <String, dynamic>{
+                          'userID': userData.userID,
+                          'name': userData.name,
+                          'role': 'doctor',
+                          'branchId': userData.branchId,
+                          'isActive': true,
+                          'specialization': userData.specialization,
+                          'phoneNumber': userData.phoneNumber,
+                          'email': userData.email,
+                        };
+                        await FirebaseFirestore.instance
+                            .collection('doctors')
+                            .doc(userData.userID)
+                            .set(doctorData);
+                        
+                        // 2) Mirror minimal fields to users collection for compatibility
                         await FirebaseFirestore.instance
                             .collection('users')
                             .doc(userData.userID)
-                            .set(userData.toMap());
+                            .set({
+                              'name': userData.name,
+                              'role': 'doctor',
+                              'branchId': userData.branchId,
+                              'isActive': true,
+                              'specialization': userData.specialization,
+                              'phoneNumber': userData.phoneNumber,
+                              'email': userData.email,
+                            }, SetOptions(merge: true));
                         
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -246,10 +312,16 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
 
     if (confirmed == true) {
       try {
+        // Remove from doctors collection
+        await FirebaseFirestore.instance
+            .collection('doctors')
+            .doc(doctor.userID)
+            .delete();
+        // Also deactivate/remove mirror in users collection
         await FirebaseFirestore.instance
             .collection('users')
             .doc(doctor.userID)
-            .delete();
+            .set({'isActive': false}, SetOptions(merge: true));
         
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Doctor deleted successfully!')),
@@ -297,10 +369,14 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
       drawer: const MyDrawer(),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Modern branch selection header
-                Container(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  child: Column(
+                    children: [
+                      // Modern branch selection header
+                      Container(
                   margin: EdgeInsets.all(spacingM),
                   padding: EdgeInsets.all(spacingL),
                   decoration: BoxDecoration(
@@ -410,8 +486,8 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                       : _doctors.isEmpty
                           ? Center(
                               child: Container(
-                                margin: EdgeInsets.all(spacingXL),
-                                padding: EdgeInsets.all(spacingXXL),
+                                margin: EdgeInsets.all(spacingM),
+                                padding: EdgeInsets.all(spacingL),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [backgroundPrimary, neutralLight],
@@ -421,9 +497,10 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                                   borderRadius: cardRadius,
                                   boxShadow: const [cardShadow],
                                 ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                     Container(
                                       width: 120,
                                       height: 120,
@@ -472,7 +549,8 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                                         ),
                                       ),
                                     ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             )
@@ -571,8 +649,11 @@ class _DoctorManagementPageState extends State<DoctorManagementPage> {
                                 );
                               },
                             ),
-                ),
-              ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
     );
   }

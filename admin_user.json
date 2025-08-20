@@ -1,0 +1,11 @@
+{
+  "users": [
+    {
+      "localId": "admin_mahrukh_2024",
+      "email": "mahrukh.tibbi@gmail.com",
+      "emailVerified": true,
+      "displayName": "Mahrukh Tibbi",
+      "disabled": false
+    }
+  ]
+}

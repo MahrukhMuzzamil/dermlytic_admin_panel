@@ -65,9 +65,11 @@ class _SchedulerPageState extends State<SchedulerPage> {
   }
 
   Future<void> _fetchBranches() async {
+    if (!mounted) return;
     setState(() { _loading = true; });
     final branchSnaps = await FirebaseFirestore.instance.collection('branches').get();
     final branches = branchSnaps.docs.map((doc) => BranchModel.fromMap(doc.data(), documentId: doc.id)).toList();
+    if (!mounted) return;
     setState(() {
       _branches = branches;
       _selectedBranch = branches.isNotEmpty ? branches[0] : null;
@@ -79,8 +81,10 @@ class _SchedulerPageState extends State<SchedulerPage> {
   }
 
   Future<void> _fetchDoctorsAndRooms() async {
+    if (!mounted) return;
     setState(() { _loading = true; });
     if (_selectedBranch == null) {
+      if (!mounted) return;
       setState(() {
         _doctors = [];
         _rooms = [];
@@ -103,6 +107,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
     for (int i = 1; i <= roomCount; i++) {
       rooms.add('Room $i');
     }
+    if (!mounted) return;
     setState(() {
       _doctors = doctors;
       _selectedDoctor = doctors.isNotEmpty ? doctors[0] : null;

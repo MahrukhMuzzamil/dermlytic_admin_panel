@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Admin User</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <h1>Fix Admin User</h1>
+    <button onclick="createAdminUser()">Create Admin User Document</button>
+    <div id="result"></div>
+
+    <script>
+        // Your Firebase config (replace with your actual config)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6Dc8YNaKp5wD-dOQP5F2mLJsJ0-M1B5c",
+            authDomain: "aesthetics-lab-1.firebaseapp.com",
+            projectId: "aesthetics-lab-1",
+            storageBucket: "aesthetics-lab-1.firebasestorage.app",
+            messagingSenderId: "904881495399",
+            appId: "1:904881495399:web:c7f7b5a3a7f7b5a3a7f7b5"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function createAdminUser() {
+            try {
+                const adminDoc = {
+                    userID: "OFtbvgcPiAPX7fFfioA6fPNcuM2",
+                    name: "Mahrukh Tibbi",
+                    email: "mahrukh.tibbi@gmail.com",
+                    role: "admin",
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    permissions: ["ALL"]
+                };
+
+                await db.collection('users').doc('OFtbvgcPiAPX7fFfioA6fPNcuM2').set(adminDoc);
+                
+                document.getElementById('result').innerHTML = '<p style="color: green;">✅ Admin user created successfully!</p>';
+                console.log('Admin user created:', adminDoc);
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+                console.error('Error creating admin user:', error);
+            }
+        }
+    </script>
+</body>
+</html>

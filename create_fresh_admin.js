@@ -1,0 +1,27 @@
+// Simple script to create fresh admin user
+console.log('🔥 CREATING FRESH ADMIN USER...');
+console.log('');
+console.log('Go to Firebase Console and do this EXACTLY:');
+console.log('');
+console.log('1. Authentication → Users');
+console.log('2. DELETE the existing mahrukh.tibbi@gmail.com user (if exists)');
+console.log('3. Click "Add user"');
+console.log('4. Email: mahrukh.tibbi@gmail.com');
+console.log('5. Password: admin123456');
+console.log('6. Click "Add user"');
+console.log('7. COPY THE NEW UID (looks like: abc123def456)');
+console.log('');
+console.log('8. Firestore Database → users collection');
+console.log('9. Add document with ID: [paste the UID]');
+console.log('10. Add fields:');
+console.log('    userID: [paste UID] (string)');
+console.log('    name: Mahrukh Tibbi (string)');
+console.log('    email: mahrukh.tibbi@gmail.com (string)');
+console.log('    role: admin (string)');
+console.log('    isActive: true (boolean)');
+console.log('    createdAt: 2024-01-15T10:00:00.000Z (string)');
+console.log('    permissions: ["ALL"] (array with single string "ALL")');
+console.log('');
+console.log('11. Save and test login at http://localhost:8080');
+console.log('');
+console.log('✅ This will create a working admin user!');
