@@ -41,3 +41,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets & environment
+admin_user.json
+admin_user_with_password.json
+users_export.json
+fix_admin_user.html
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+web/firebase-messaging-sw.js
+.env
+.env.*
+
+# Firebase cache
+.firebase/

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show PointerDeviceKind;
 import 'package:aesthetics_labs_admin/ui/general_widgets/drawer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -32,6 +33,11 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
   final double slotWidth = 90;
   final int slotMinutes = 30;
   final double rowHeight = 50;
+  // Scroll controllers for scrollbars and syncing
+  final ScrollController _horizontalController = ScrollController();
+  final ScrollController _leftVerticalController = ScrollController();
+  final ScrollController _rightVerticalController = ScrollController();
+  bool _syncingScroll = false;
 
   // Form controllers for booking
   final TextEditingController _nameController = TextEditingController();
@@ -48,6 +54,28 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
   void initState() {
     super.initState();
     _fetchDoctorsAndRooms();
+    _leftVerticalController.addListener(() {
+      if (_syncingScroll) return;
+      if (!_rightVerticalController.hasClients) return;
+      _syncingScroll = true;
+      _rightVerticalController.jumpTo(_leftVerticalController.position.pixels);
+      _syncingScroll = false;
+    });
+    _rightVerticalController.addListener(() {
+      if (_syncingScroll) return;
+      if (!_leftVerticalController.hasClients) return;
+      _syncingScroll = true;
+      _leftVerticalController.jumpTo(_rightVerticalController.position.pixels);
+      _syncingScroll = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _horizontalController.dispose();
+    _leftVerticalController.dispose();
+    _rightVerticalController.dispose();
+    super.dispose();
   }
 
   @override
@@ -289,7 +317,7 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.source),
                               ),
-                              items: ['Facebook', 'Google', 'Friend', 'Instagram', 'Other']
+                              items: ['Direct', 'Facebook', 'Google', 'Friend', 'Instagram', 'Other']
                                   .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                               onChanged: (val) => setState(() => _selectedReferral = val),
                             ),
@@ -434,20 +462,14 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
     return null;
   }
 
-  // Helper method to get status color
+  // Helper method to get status color (synced with dashboard)
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'open & confirmed':
-        return Colors.blue.withOpacity(0.8);
-      case 'in-progress':
-        return Colors.orange.withOpacity(0.8);
-      case 'serviced':
-        return Colors.green.withOpacity(0.8);
-      case 'cancelled':
-        return Colors.red.withOpacity(0.8);
-      default:
-        return Colors.grey.withOpacity(0.8);
-    }
+    final s = status.trim().toLowerCase();
+    if (s == 'serviced') return Colors.green.shade400;
+    if (s == 'in-progress') return lightGrey;
+    if (s == 'open & confirmed') return primaryColor;
+    if (s == 'cancelled') return Colors.pink.shade300;
+    return Colors.blueGrey; // default like dashboard
   }
 
   // Method to show appointment details when clicking on existing appointment
@@ -503,7 +525,7 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        // Could add edit functionality here
+                        _showEditAppointmentForm(appointment);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
@@ -519,6 +541,312 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
         ),
       ),
     );
+  }
+
+  // Edit form populated with existing appointment details
+  void _showEditAppointmentForm(Map<String, dynamic> appointment) {
+    // Prefill controllers and selections
+    _nameController.text = (appointment['userName'] ?? '').toString();
+    _phoneController.text = (appointment['userPhoneNumber'] ?? '').toString();
+    _emailController.text = (appointment['email'] ?? '').toString();
+    _codeController.text = (appointment['code'] ?? '').toString();
+    _selectedGender = appointment['gender'] as String?;
+    _selectedService = appointment['serviceName'] as String?;
+    _selectedConsultant = appointment['consultant'] as String?;
+    _selectedStatus = (appointment['status'] as String?) ?? 'Open & confirmed';
+    _selectedReferral = appointment['referral'] as String?;
+
+    DateTime originalStart = appointment['start'] is Timestamp
+        ? (appointment['start'] as Timestamp).toDate()
+        : (appointment['start'] as DateTime? ?? DateTime.now());
+    DateTime originalEnd = appointment['end'] is Timestamp
+        ? (appointment['end'] as Timestamp).toDate()
+        : (appointment['end'] as DateTime? ?? originalStart.add(const Duration(minutes: 30)));
+    int originalDurationMins = originalEnd.difference(originalStart).inMinutes;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: 500,
+          constraints: const BoxConstraints(maxHeight: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit, color: Colors.white),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Edit Appointment', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: StatefulBuilder(
+                  builder: (context, setLocalState) {
+                    DateTime tempStart = originalStart;
+                    return SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Reschedule controls
+                      const Text('Reschedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: tempStart,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setLocalState(() {
+                                  tempStart = DateTime(picked.year, picked.month, picked.day, tempStart.hour, tempStart.minute);
+                                  originalStart = tempStart;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text('${tempStart.day.toString().padLeft(2, '0')}/${tempStart.month.toString().padLeft(2, '0')}/${tempStart.year}'),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay(hour: tempStart.hour, minute: tempStart.minute),
+                              );
+                              if (picked != null) {
+                                setLocalState(() {
+                                  tempStart = DateTime(tempStart.year, tempStart.month, tempStart.day, picked.hour, picked.minute);
+                                  originalStart = tempStart;
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.schedule),
+                            label: Text(DateFormat('h:mm a').format(tempStart)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Reuse the same input widgets as booking form
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Patient Name *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.person),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneController,
+                              decoration: InputDecoration(
+                                labelText: 'Phone Number *',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                prefixIcon: const Icon(Icons.phone),
+                              ),
+                              keyboardType: TextInputType.phone,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedGender,
+                              decoration: InputDecoration(
+                                labelText: 'Gender *',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                prefixIcon: const Icon(Icons.wc),
+                              ),
+                              items: ['Male', 'Female'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                              onChanged: (val) => setState(() => _selectedGender = val),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _emailController,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.email),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _codeController,
+                        decoration: InputDecoration(
+                          labelText: 'Patient Code',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.confirmation_number),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: _selectedService,
+                        decoration: InputDecoration(
+                          labelText: 'Service *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.medical_services),
+                        ),
+                        items: [
+                          'HydraFacial', 'Chemical Peels', 'Microneedling', 'Botox', 'Dermal Fillers',
+                          'Laser Hair Removal', 'Carbon Peel', 'Free Consultation'
+                        ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                        onChanged: (val) => setState(() => _selectedService = val),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedConsultant,
+                        decoration: InputDecoration(
+                          labelText: 'Consultant/Room *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          prefixIcon: const Icon(Icons.person_outline),
+                        ),
+                        items: _rows.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                        onChanged: (val) => setState(() => _selectedConsultant = val),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedStatus,
+                              decoration: InputDecoration(
+                                labelText: 'Status',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                prefixIcon: const Icon(Icons.flag),
+                              ),
+                              items: ['Open & confirmed', 'In-progress', 'Serviced', 'Cancelled']
+                                  .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                              onChanged: (val) => setState(() => _selectedStatus = val),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: ['Direct','Facebook','Google','Friend','Instagram','Other'].contains(_selectedReferral) ? _selectedReferral : 'Direct',
+                              decoration: InputDecoration(
+                                labelText: 'Referral Source',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                prefixIcon: const Icon(Icons.source),
+                              ),
+                              items: ['Direct', 'Facebook', 'Google', 'Friend', 'Instagram', 'Other']
+                                  .map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                              onChanged: (val) => setState(() => _selectedReferral = val),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _updateAppointment(appointment, newStart: originalStart, newDurationMinutes: originalDurationMins),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryColor,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Save Changes'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+                  }
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateAppointment(Map<String, dynamic> original, {DateTime? newStart, int? newDurationMinutes}) async {
+    // Validate
+    if (_nameController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty ||
+        _selectedService == null ||
+        _selectedConsultant == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in required fields')),
+      );
+      return;
+    }
+
+    try {
+      final docId = original['_id'] as String?;
+      if (docId == null) throw 'Missing document id for appointment';
+
+      final update = <String, dynamic>{
+        'userName': _nameController.text.trim(),
+        'userPhoneNumber': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'code': _codeController.text.trim(),
+        'gender': _selectedGender,
+        'serviceName': _selectedService,
+        'consultant': _selectedConsultant,
+        'roomId': _selectedConsultant,
+        'status': _selectedStatus,
+        'referral': _selectedReferral,
+      };
+
+      if (newStart != null) {
+        final duration = (newDurationMinutes ?? 30).clamp(5, 24 * 60);
+        update['start'] = Timestamp.fromDate(newStart);
+        update['end'] = Timestamp.fromDate(newStart.add(Duration(minutes: duration)));
+      }
+
+      await FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(widget.branchId)
+          .collection('bookings')
+          .doc(docId)
+          .update(update);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Appointment updated')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update: $e')),
+      );
+    }
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -594,7 +922,11 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
         ),
       ),
       drawer: const MyDrawer(),
-      body: Column(
+      body: ScrollConfiguration(
+        behavior: const MaterialScrollBehavior().copyWith(
+          dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.trackpad, PointerDeviceKind.stylus},
+        ),
+        child: Column(
         children: [
           // Compact date picker section
           Container(
@@ -704,8 +1036,10 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                         for (var doc in snapshot.data!.docs) {
                           final data = doc.data() as Map<String, dynamic>;
                           final consultant = (data['consultant'] ?? 'Unknown') as String;
+                          // Attach the Firestore document id for editing updates
+                          final withId = {...data, '_id': doc.id};
                           print('Appointment: ${data['userName']} with $consultant at ${data['start']}');
-                          (_appointmentsByConsultant[consultant] ??= []).add(data);
+                          (_appointmentsByConsultant[consultant] ??= []).add(withId);
                         }
                         print('Appointments by consultant: ${_appointmentsByConsultant.keys.toList()}');
                       } else {
@@ -800,9 +1134,13 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                                           decoration: BoxDecoration(
                                             border: Border(right: BorderSide(color: Colors.grey[300]!)),
                                           ),
-                                          child: ListView.builder(
-                                            itemCount: _rows.length,
-                                            itemBuilder: (context, rowIdx) {
+                                          child: Scrollbar(
+                                            controller: _leftVerticalController,
+                                            thumbVisibility: true,
+                                            child: ListView.builder(
+                                              controller: _leftVerticalController,
+                                              itemCount: _rows.length,
+                                              itemBuilder: (context, rowIdx) {
                                               final rowLabel = _rows[rowIdx];
                                               final isDoctor = _doctors.contains(rowLabel);
                                               return Container(
@@ -848,19 +1186,28 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                                                   ],
                                                 ),
                                               );
-                                            },
+                                              },
+                                            ),
                                           ),
                                         ),
                                         
                                         // Timeline grid
                                         Expanded(
-                                          child: SingleChildScrollView(
-                                            scrollDirection: Axis.horizontal,
-                                            child: SizedBox(
-                                              width: _timeSlots.length * slotWidth,
-                                              child: ListView.builder(
-                                                itemCount: _rows.length,
-                                                itemBuilder: (context, rowIdx) {
+                                          child: Scrollbar(
+                                            controller: _horizontalController,
+                                            thumbVisibility: true,
+                                            child: SingleChildScrollView(
+                                              controller: _horizontalController,
+                                              scrollDirection: Axis.horizontal,
+                                              child: SizedBox(
+                                                width: _timeSlots.length * slotWidth,
+                                                child: Scrollbar(
+                                                  controller: _rightVerticalController,
+                                                  thumbVisibility: true,
+                                                  child: ListView.builder(
+                                                    controller: _rightVerticalController,
+                                                    itemCount: _rows.length,
+                                                    itemBuilder: (context, rowIdx) {
                                                   return Container(
                                                     height: rowHeight,
                                                     child: Row(
@@ -937,6 +1284,8 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
                                               ),
                                             ),
                                           ),
+                                          ),
+                                        ),
                                         ),
                                       ],
                                     ),
@@ -949,6 +1298,7 @@ class _AppointmentPageSimpleState extends State<AppointmentPageSimple> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

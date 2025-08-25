@@ -36,6 +36,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
   Map<String, int> _statusCounts = const {};
   int _uniqueGuests = 0;
   num _totalRevenue = 0;
+  final TextEditingController _serviceSearch = TextEditingController();
 
   // Add this map to assign a color to each doctor
   final Map<String, Color> _doctorColors = {};
@@ -176,6 +177,13 @@ class _SchedulerPageState extends State<SchedulerPage> {
                       contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _showServicePriceSearch,
+                  icon: const Icon(Icons.price_change),
+                  label: const Text('Price List'),
+                  style: OutlinedButton.styleFrom(foregroundColor: primaryColor, side: BorderSide(color: primaryColor)),
                 ),
                 const SizedBox(width: 16),
                 // Date picker
@@ -418,15 +426,20 @@ class _SchedulerPageState extends State<SchedulerPage> {
                     leading: Icon(Icons.circle, color: _statusColor(s), size: 14),
                     title: Text(s),
                     onTap: () async {
-                      // naive update by matching name + start time
-                      final q = await FirebaseFirestore.instance
-                          .collection('bookings')
-                          .where('userName', isEqualTo: appt.subject)
-                          .where('start', isEqualTo: appt.startTime)
-                          .limit(1)
-                          .get();
-                      if (q.docs.isNotEmpty) {
-                        await q.docs.first.reference.update({'status': s});
+                      // Update status within the current branch's nested bookings collection
+                      final branchId = _selectedBranch?.branchId;
+                      if (branchId != null) {
+                        final q = await FirebaseFirestore.instance
+                            .collection('bookings')
+                            .doc(branchId)
+                            .collection('bookings')
+                            .where('userName', isEqualTo: appt.subject)
+                            .where('start', isEqualTo: Timestamp.fromDate(appt.startTime))
+                            .limit(1)
+                            .get();
+                        if (q.docs.isNotEmpty) {
+                          await q.docs.first.reference.update({'status': s});
+                        }
                       }
                       if (mounted) Navigator.pop(context);
                     },
@@ -602,6 +615,88 @@ class _SchedulerPageState extends State<SchedulerPage> {
     ]);
   }
 
+}
+
+extension _ServicePriceSearch on _SchedulerPageState {
+  void _showServicePriceSearch() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          child: SizedBox(
+            width: 560,
+            height: 600,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  color: primaryColor,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.price_change, color: Colors.white),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text('Service Price List', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                      IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white)),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    controller: _serviceSearch,
+                    decoration: InputDecoration(
+                      hintText: 'Search service name...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onChanged: (_) => (context as Element).markNeedsBuild(),
+                  ),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance.collection('products').snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final all = (snapshot.data?.docs ?? []).map((d) => d.data() as Map<String, dynamic>).toList();
+                      final q = _serviceSearch.text.toLowerCase().trim();
+                      final filtered = q.isEmpty
+                          ? all
+                          : all.where((m) => (m['title'] ?? '').toString().toLowerCase().contains(q)).toList();
+                      if (filtered.isEmpty) {
+                        return const Center(child: Text('No matching services'));
+                      }
+                      return ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final m = filtered[index];
+                          final String title = (m['title'] ?? 'Service') as String;
+                          final num price = (m['price'] ?? 0) as num;
+                          final num duration = (m['duration'] ?? 0) as num;
+                          final bundles = (m['bundles'] as List?) ?? [];
+                          return ListTile(
+                            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: bundles.isEmpty
+                                ? Text('Duration: ${duration.toStringAsFixed(0)} min')
+                                : Text('${bundles.length} bundle(s) available'),
+                            trailing: Text('Rs ${price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _CalendarDataSource extends CalendarDataSource {

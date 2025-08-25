@@ -1,7 +1,6 @@
 import 'package:aesthetics_labs_admin/controllers/user_controller.dart';
 import 'package:aesthetics_labs_admin/ui/booking_management/add_new_booking.dart';
 import 'package:aesthetics_labs_admin/ui/dashboard/scheduler_page.dart';
-import 'package:aesthetics_labs_admin/ui/booking_management/view_bookings.dart';
 import 'package:aesthetics_labs_admin/ui/branch_management/view_all_branches/view_all_branches.dart';
 import 'package:aesthetics_labs_admin/ui/branch_management/add_new_branch/add_new_branch.dart';
 import 'package:aesthetics_labs_admin/ui/general_widgets/custom_filled_button.dart';
@@ -149,29 +148,7 @@ class MyDrawer extends StatelessWidget {
                       },
                     ),
                   ),
-                  PermissionWrapper(
-                    requiredPermission: Permission.viewBookings,
-                    child: ListTile(
-                      title: const Text('View All Bookings'),
-                      leading: const Icon(Icons.list_alt),
-                      onTap: () {
-                        Get.off(const ViewBookings(), preventDuplicates: false);
-                      },
-                    ),
-                  ),
-                  PermissionWrapper(
-                    requiredPermission: Permission.viewBookings,
-                    child: ListTile(
-                      title: const Text('View new Bookings'),
-                      leading: const Icon(Icons.new_releases),
-                      onTap: () {
-                        Get.to(
-                          const ViewBookings(isLatest: true),
-                          preventDuplicates: false,
-                        );
-                      },
-                    ),
-                  ),
+                  // Removed "View Appointments/Bookings" menu entries per request
                   
                   // Reports - Only for users with report permissions
                   PermissionWrapper(
